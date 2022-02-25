@@ -3,8 +3,13 @@ import numpy as np
 import sklearn
 import sklearn.discriminant_analysis
 
-import tensorflow
+import tensorflow as tf
 from tensorflow import keras
+# from  keras.utils import to_categorical
+# from  keras.models import Sequential
+# from  keras.layers import Dense
+# from  keras.layers import Flatten
+
 from  tensorflow.keras.utils import to_categorical
 from  tensorflow.keras.models import Sequential
 from  tensorflow.keras.layers import Dense
@@ -52,7 +57,7 @@ def find_bias(projection,classes):
     return bias, direction
 
 
-def sort_LDA(points, labels):
+def sort_LDA(points, labels, scale=1.0):
     """ Given point cloud data in format (n_points, n_features), and binarized (0,1) labels,
     this function performs one single "sorting step": Computes the linear discriminant, 
     finds the bias which maximizes sorting, and discards the points which are "sorted." 
@@ -74,7 +79,7 @@ def sort_LDA(points, labels):
     bias, direction = find_bias(projection, labels.T)
     
     #Find standard deviation of data
-    stdev = np.std(projection)
+    stdev = np.std(projection)*scale
     
     # Find which points are not sorted. These are the points 
     # which are sufficiently far on the "wrong side" of the bias. 
@@ -94,6 +99,7 @@ def ldasort(points,
                  max_weights = 10, 
                  stop_at = None,
                  verbose = False, 
+                scale=1.0
                        ): 
     ''' Given point cloud data in (n_points, n_features) format, labels size (n_points,), 
     a stopping point for a maximum number of weights to compute, and, if provided, a number
@@ -118,7 +124,7 @@ def ldasort(points,
             #iteratively compute at most max_weights weights. 
             
             #perform a single sorting step, saving the weights and biases
-            temppoints, templabels, tempweight, tempbias= sort_LDA(temppoints,templabels)
+            temppoints, templabels, tempweight, tempbias= sort_LDA(temppoints,templabels, scale=scale)
             sortweights.append(tempweight)
             sortbiases.append(tempbias)
 
@@ -127,6 +133,9 @@ def ldasort(points,
                 if verbose:
                     print("Label {} sorted".format(i))
                 break
+                
+           
+        print("Label {} experienced maximum iteration".format(i))
                         
     return np.array(sortweights), np.array(sortbiases)
 
@@ -136,7 +145,7 @@ def setup(intermediate_neurons=64, input_shape=64, output_shape=10):
 
 
     model.add(keras.layers.Dense(
-        units=factors,
+        units=intermediate_neurons,
         input_shape=(input_shape,),
         activation='tanh',
         kernel_initializer="Orthogonal"
