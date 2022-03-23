@@ -40,10 +40,11 @@ def find_bias(projection,classes):
     count_ones = count_ones/max(count_ones)
 
     # This computation determines the quantity (zeros to the left of x) + (ones to the right of x)
-    sort_quantity = count_zeros + 1 - count_ones  
+    sort_quantity = np.array(count_zeros) - np.array(count_ones)  
    
     # find the xcut threshold maximizing (zeros to the left of x) + (ones to the right of x) OR the opposite. 
-    # also records which direction 
+    # also records a sorting direction. 
+    
     if np.abs(np.max(sort_quantity))>np.abs(np.min(sort_quantity)):
         xcut = xrange[np.argmax(sort_quantity)]
         direction = 1
@@ -83,13 +84,14 @@ def sort_LDA(points, labels, scale=1.0):
     
     # Find which points are not sorted. These are the points 
     # which are sufficiently far on the "wrong side" of the bias. 
-    unsorted_indices = np.logical_or(np.logical_and(projection < -bias+stdev, labels == int(direction == -1)), 
-                                     np.logical_and(projection > -bias-stdev, labels == int(direction == 1))
-                                    )
+    unsorted_indices = np.logical_or(np.logical_and(projection < -bias+stdev, labels == int(direction == 1)), 
+                                     np.logical_and(projection > -bias-stdev, labels == int(direction == -1))
+                                    ) 
     
     # Return the unsorted points and labels
     unsorted_points = points[unsorted_indices]
     unsorted_labels = labels[unsorted_indices]
+    
     
     return unsorted_points, unsorted_labels, weight, bias
 
@@ -106,6 +108,8 @@ def ldasort(points,
     of remaining points to indicate stopping (default: dimension of the dataset).
     Returns weights and biases for the first layer of a neural network. 
     '''
+    
+    # indicate to stop looking for linear discriminants after this many data points remain.
     
     if stop_at is None: 
         stop_at=len(points[0])
@@ -134,8 +138,8 @@ def ldasort(points,
                     print("Label {} sorted".format(i))
                 break
                 
-           
-        print("Label {} experienced maximum iteration".format(i))
+        if verbose and j==max_weights-1:   
+            print("Label {} sorted".format(i))
                         
     return np.array(sortweights), np.array(sortbiases)
 
